@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>吃吃帖 · 美食籤 Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   吃吃帖 · 美食籤 (Food Fortune Draw) — 純前端 Demo
+   主題：把「選餐廳」做成台灣廟口「求籤」的儀式感
+   全部寫在這一個檔案，沒有任何外部依賴（字型除外）
+   ============================================================ */
+
+/* ---------- 設計 Token：要換色改這裡就好 ---------- */
+:root{
+  --ink:        #2A2420;   /* 墨色文字 */
+  --ink-soft:   #6B6258;   /* 次要文字 */
+  --paper:      #F6F0E4;   /* 宣紙底 */
+  --paper-2:    #ECE3D1;   /* 卡片底 */
+  --cinnabar:   #B22A1E;   /* 朱紅 */
+  --cinnabar-d: #7E1C13;   /* 深朱紅 */
+  --gold:       #C2A46F;   /* 香檳金（呼應個人品牌色）*/
+  --gold-d:     #8C7440;   /* 深金 */
+  --line:       rgba(42,36,32,.14);
+  --radius:     16px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Noto Sans TC",system-ui,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px 16px;
+}
+
+/* 手機外框 */
+.phone{
+  width:100%;
+  max-width:400px;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:28px;
+  padding:22px 20px 28px;
+}
+
+/* ---------- 標題列 ---------- */
+.bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.brand{font-family:"Noto Serif TC",serif;font-size:22px;font-weight:700;letter-spacing:1px}
+.brand small{font-weight:500;font-size:14px;color:var(--cinnabar)}
+.loc{font-size:12px;color:var(--gold-d);border:1px solid var(--gold);border-radius:999px;padding:3px 10px}
+.hint{font-size:12px;color:var(--ink-soft);margin:2px 0 18px}
+
+/* ---------- 篩選 ---------- */
+.types{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+.chip{
+  font-family:inherit;font-size:13px;cursor:pointer;
+  padding:6px 13px;border-radius:999px;
+  border:1px solid var(--line);background:transparent;color:var(--ink-soft);
+  transition:all .15s;
+}
+.chip:hover{border-color:var(--gold)}
+.chip.on{background:var(--cinnabar);border-color:var(--cinnabar);color:#fff}
+.chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.slider{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.slider label{font-size:13px;color:var(--ink-soft);min-width:54px}
+.slider output{font-size:13px;font-weight:500;min-width:50px;text-align:right}
+input[type=range]{flex:1;accent-color:var(--cinnabar);height:22px}
+input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+.count{text-align:center;font-size:13px;color:var(--ink-soft);margin:14px 0 6px}
+.count b{color:var(--ink);font-weight:500}
+
+/* ---------- 籤筒（招牌元素）---------- */
+.stage{position:relative;min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+.tube-wrap{display:flex;flex-direction:column;align-items:center;gap:0}
+.sticks{display:flex;gap:5px;align-items:flex-end;height:46px;margin-bottom:-6px;z-index:1}
+.stick{width:6px;background:var(--gold);border-radius:3px 3px 0 0;border:1px solid var(--gold-d)}
+.stick:nth-child(1){height:38px}.stick:nth-child(2){height:46px}
+.stick:nth-child(3){height:34px}.stick:nth-child(4){height:44px}
+.stick:nth-child(5){height:40px}.stick:nth-child(6){height:32px}
+.tube{
+  width:96px;height:104px;background:var(--cinnabar);
+  border:3px solid var(--cinnabar-d);border-radius:10px 10px 14px 14px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:"Noto Serif TC",serif;font-size:30px;font-weight:700;
+  letter-spacing:4px;writing-mode:vertical-rl;
+}
+.tube-wrap.shaking{animation:shake .12s linear 8}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+
+.flick{
+  font-family:"Noto Serif TC",serif;font-size:20px;font-weight:500;
+  color:var(--cinnabar-d);min-height:28px;margin-bottom:14px;
+}
+
+.go-btn{
+  margin-top:20px;font-family:inherit;font-size:18px;font-weight:500;cursor:pointer;
+  color:#fff;background:var(--cinnabar);border:none;
+  padding:14px 46px;border-radius:999px;letter-spacing:2px;
+  transition:transform .1s,background .15s;
+}
+.go-btn:hover{background:var(--cinnabar-d)}
+.go-btn:active{transform:scale(.97)}
+.go-btn:disabled{background:var(--ink-soft);opacity:.5;cursor:default}
+.go-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+/* ---------- 籤詩結果卡 ---------- */
+.fortune{
+  width:100%;background:var(--paper-2);border:1px solid var(--gold);
+  border-radius:var(--radius);padding:22px 20px 18px;text-align:center;
+  opacity:0;transform:translateY(16px);transition:opacity .4s,transform .4s;
+}
+.fortune.show{opacity:1;transform:none}
+.fortune .tier{
+  display:inline-block;font-family:"Noto Serif TC",serif;font-size:15px;font-weight:700;
+  color:var(--cinnabar-d);border:1px solid var(--cinnabar);
+  border-radius:6px;padding:2px 14px;margin-bottom:12px;letter-spacing:2px;
+}
+.fortune .name{font-family:"Noto Serif TC",serif;font-size:30px;font-weight:700;line-height:1.2}
+.fortune .verse{font-family:"Noto Serif TC",serif;font-size:15px;color:var(--gold-d);margin:8px 0 14px;letter-spacing:1px}
+.fortune .meta{font-size:13px;color:var(--ink-soft);margin-bottom:18px}
+.fortune .acts{display:flex;gap:10px}
+.fortune button{
+  flex:1;font-family:inherit;font-size:15px;cursor:pointer;padding:11px;border-radius:10px;transition:all .15s;
+}
+.btn-again{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn-again:hover{border-color:var(--gold)}
+.btn-go{background:var(--cinnabar);border:none;color:#fff}
+.btn-go:hover{background:var(--cinnabar-d)}
+.fortune button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.tally{text-align:center;font-size:12px;color:var(--ink-soft);margin-top:14px}
+
+@media (prefers-reduced-motion: reduce){
+  .tube-wrap.shaking{animation:none}
+  .fortune{transition:opacity .2s}
+}
+</style>
+</head>
+<body>
+
+<main class="phone" role="application" aria-label="美食籤抽籤">
+  <div class="bar">
+    <div class="brand">食籤 <small>· 吃吃帖</small></div>
+    <div class="loc">信義區 · 周圍 <span id="locDist">1.0km</span></div>
+  </div>
+  <p class="hint">Demo 假資料，不串接真實地圖。求一支籤，今天就吃這間。</p>
+
+  <div class="types" id="types" role="group" aria-label="餐廳類型"></div>
+
+  <div class="slider">
+    <label for="dist">距離內</label>
+    <input type="range" id="dist" min="300" max="2000" step="100" value="1000">
+    <output id="distOut">1.0km</output>
+  </div>
+  <div class="slider">
+    <label for="rate">評分 ≥</label>
+    <input type="range" id="rate" min="40" max="48" step="1" value="40">
+    <output id="rateOut">4.0</output>
+  </div>
+
+  <p class="count">候選 <b id="cnt">—</b> 間</p>
+
+  <div class="stage">
+    <!-- 求籤動作區（招牌元素：籤筒）-->
+    <div id="drawZone">
+      <div class="flick" id="flick" aria-live="polite">&#12288;</div>
+      <div class="tube-wrap" id="tube">
+        <div class="sticks" aria-hidden="true">
+          <span class="stick"></span><span class="stick"></span><span class="stick"></span>
+          <span class="stick"></span><span class="stick"></span><span class="stick"></span>
+        </div>
+        <div class="tube" aria-hidden="true">食籤</div>
+      </div>
+      <button class="go-btn" id="draw">求一支籤</button>
+    </div>
+
+    <!-- 籤詩結果卡 -->
+    <div class="fortune" id="fortune" role="status" aria-live="polite">
+      <span class="tier" id="fTier">上籤</span>
+      <div class="name" id="fName">—</div>
+      <div class="verse" id="fVerse">—</div>
+      <div class="meta" id="fMeta">—</div>
+      <div class="acts">
+        <button class="btn-again" id="again">再求一支</button>
+        <button class="btn-go" id="goMap">帶我去</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="tally">今日已求 <span id="tally">0</span> 支</p>
+</main>
+
+<script>
+/* ============================================================
+   1. 餐廳資料（真實版這裡換成 Google Places 或吃吃帖店家資料）
+      rate 用整數表示（45 = 4.5 顆星），方便滑桿比較
+   ============================================================ */
+const RESTAURANTS = [
+  { name:"巷口牛肉麵",   type:"麵食", rate:45, dist:300,  price:"$"   },
+  { name:"阿姨台式食堂", type:"台式", rate:46, dist:200,  price:"$"   },
+  { name:"老王蚵仔煎",   type:"小吃", rate:45, dist:250,  price:"$"   },
+  { name:"麵屋一燈",     type:"拉麵", rate:44, dist:450,  price:"$$"  },
+  { name:"樂麵屋",       type:"拉麵", rate:42, dist:550,  price:"$$"  },
+  { name:"初心日式咖哩", type:"日式", rate:43, dist:600,  price:"$$"  },
+  { name:"綠光輕食沙拉", type:"輕食", rate:44, dist:350,  price:"$$"  },
+  { name:"川辣麻辣鍋",   type:"火鍋", rate:45, dist:900,  price:"$$"  },
+  { name:"大胃王燒肉",   type:"燒烤", rate:46, dist:1100, price:"$$$" },
+  { name:"鼎食小籠包",   type:"台式", rate:47, dist:800,  price:"$$$" }
+];
+
+/* 2. 動畫參數（調手感改這裡）---------------------------------- */
+const CONFIG = {
+  shakeMs: 950,          // 籤筒搖動時間
+  flickStart: 55,        // 名字跳動起始間隔(ms)，越小越快
+  flickStep: 11,         // 每次減速增加的間隔
+  flickEndExtra:[290,380,470], // 定槌前的幾下慢動作
+  mapsArea: "台北信義區"  // 「帶我去」開 Google Maps 時附帶的地區關鍵字
+};
+
+/* 3. 籤等與吉語（依評分對應）---------------------------------- */
+const TIERS = [
+  { min:47, label:"上上籤", verse:"天賜良緣，此味必嚐" },
+  { min:45, label:"上籤",   verse:"飢腸已動，正逢佳餚" },
+  { min:43, label:"中吉",   verse:"知足常樂，一飽便是福" },
+  { min:0,  label:"小吉",   verse:"緣分隨意，吃了再說" }
+];
+const tierOf = r => TIERS.find(t => r.rate >= t.min);
+
+/* ============================================================
+   以下為邏輯，一般不用動
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let curType = "全部", drawing = false, picked = null, tallyCount = 0;
+
+/* 類型 chips */
+const TYPES = ["全部", ...new Set(RESTAURANTS.map(r => r.type))];
+TYPES.forEach(t => {
+  const b = document.createElement("button");
+  b.className = "chip" + (t === "全部" ? " on" : "");
+  b.textContent = t;
+  b.onclick = () => {
+    curType = t;
+    [...$("types").children].forEach(c => c.classList.toggle("on", c === b));
+    update();
+  };
+  $("types").appendChild(b);
+});
+
+/* 篩選後候選 */
+function candidates(){
+  const d = +$("dist").value, r = +$("rate").value;
+  return RESTAURANTS.filter(x =>
+    x.dist <= d && x.rate >= r && (curType === "全部" || x.type === curType));
+}
+const fmtDist = m => m < 1000 ? m + "m" : (m / 1000).toFixed(1) + "km";
+
+function update(){
+  $("distOut").textContent = $("locDist").textContent = (+$("dist").value / 1000).toFixed(1) + "km";
+  $("rateOut").textContent = (+$("rate").value / 10).toFixed(1);
+  const n = candidates().length;
+  $("cnt").textContent = n;
+  $("draw").disabled = (n === 0);
+  $("draw").textContent = n === 0 ? "沒有符合的店" : "求一支籤";
+}
+$("dist").oninput = update;
+$("rate").oninput = update;
+
+/* 揭曉籤詩 */
+function reveal(r){
+  picked = r;
+  const t = tierOf(r);
+  $("fTier").textContent  = t.label;
+  $("fVerse").textContent = t.verse;
+  $("fName").textContent  = r.name;
+  $("fMeta").textContent  = `${r.type} · ★ ${(r.rate/10).toFixed(1)} · ${fmtDist(r.dist)} · ${r.price}`;
+  $("drawZone").style.display = "none";
+  const card = $("fortune");
+  card.style.display = "block";
+  requestAnimationFrame(() => card.classList.add("show"));
+  tallyCount++; $("tally").textContent = tallyCount;
+  try { navigator.vibrate && navigator.vibrate([18, 40, 30]); } catch(e){}
+}
+
+/* 求籤主流程：搖筒 → 名字減速跳動 → 定槌 */
+function draw(){
+  if (drawing) return;
+  const list = candidates();
+  if (!list.length) return;
+  drawing = true;
+  $("fortune").classList.remove("show");
+  $("fortune").style.display = "none";
+  $("drawZone").style.display = "block";
+  $("draw").disabled = true;
+
+  const startFlick = () => {
+    const intervals = [];
+    for (let t = CONFIG.flickStart; t < 240; t += CONFIG.flickStep) intervals.push(t);
+    intervals.push(...CONFIG.flickEndExtra);
+    let i = 0;
+    (function step(){
+      $("flick").textContent = list[Math.floor(Math.random() * list.length)].name;
+      if (i < intervals.length){ setTimeout(step, intervals[i]); i++; }
+      else {
+        $("flick").textContent = "\u12288";
+        drawing = false;
+        reveal(list[Math.floor(Math.random() * list.length)]);
+      }
+    })();
+  };
+
+  if (reduceMotion){ startFlick(); return; }
+  const tube = $("tube");
+  tube.classList.add("shaking");
+  setTimeout(() => { tube.classList.remove("shaking"); startFlick(); }, CONFIG.shakeMs);
+}
+
+$("draw").onclick  = draw;
+$("again").onclick = draw;
+$("goMap").onclick = () => {
+  if (!picked) return;
+  const q = encodeURIComponent(picked.name + " " + CONFIG.mapsArea);
+  window.open("https://www.google.com/maps/search/?api=1&query=" + q, "_blank");
+};
+
+update();
+</script>
+</body>
+</html>
